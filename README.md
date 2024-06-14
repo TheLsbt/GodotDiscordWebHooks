@@ -3,7 +3,7 @@
 > [!WARNING]
 > Be sure to check the [unsupported features](https://github.com/TheLsbt/GodotDiscordWebHooks/wiki/Features#unsupported-features) to ensure that you can use this plugin efficiently.
 
-[Api in action](https://github.com/TheLsbt/GodotDiscordWebHooks#api-in-action)
+Checkout the [api in action](https://github.com/TheLsbt/GodotDiscordWebHooks#api-in-action)
 
 ## Getting started
 1. To get started with GodotDiscordWebHooks install this plugin either from downloading / cloning the GitHub repository.
