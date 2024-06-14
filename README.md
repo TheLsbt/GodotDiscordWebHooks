@@ -23,23 +23,23 @@ func  _ready() -> void:
 ```gdscript
 # In res://Node.gd
 func _read() -> void:
-    var webhook := DiscordWebHook.new(WEBHOOK_URL)
-    webhook.message("Hello from godot!")
-    webhook.username("A robot")
-    # DiscordWebHook allows chaining so the above code can also be written as:
-    # webhook.message("Hello from godot!").username("A robot")
+	var webhook := DiscordWebHook.new(WEBHOOK_URL)
+	webhook.message("Hello from godot!")
+	webhook.username("A robot")
+	# DiscordWebHook allows chaining so the above code can also be written as:
+	# webhook.message("Hello from godot!").username("A robot")
 
 ```
 4. Finally, we post the message, for this introduction we won't be doing anything with the response so we won't cast it
 ```gdscript
 # In res://Node.gd
 func _read() -> void:
-    var webhook := DiscordWebHook.new(WEBHOOK_URL)
-    webhook.message("Hello from godot!")
-    webhook.username("A robot")
+	var webhook := DiscordWebHook.new(WEBHOOK_URL)
+	webhook.message("Hello from godot!")
+	webhook.username("A robot")
 
-    # Post the message
-    await webhook.post()
+	# Post the message
+	await webhook.post()
 ```
 
 ## Get a webhook url

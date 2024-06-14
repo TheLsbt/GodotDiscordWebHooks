@@ -35,6 +35,7 @@ class Response:
 	var message_embeds: Array = []
 	var message_tts := false
 	var message_flags := 0
+	var message_poll: Dictionary = {}
 
 
 	func text() -> String:
@@ -54,6 +55,7 @@ class Response:
 		message_embeds = data.get("embeds", [])
 		message_tts = data.get("tts", false)
 		message_flags = data.get("flags", 0)
+		#message_poll = data.get("poll", )
 		_parsed = true
 
 func _init(url: String) -> void:
@@ -165,9 +167,12 @@ func add_poll(question: String, awnsers: PackedStringArray, duration: int, multi
 			var emoji: String = emojis[idx]
 			# If the emoji begins with : and ends with :
 			if emoji.begins_with(":") and emoji.ends_with(":"):
+				awnser["poll_media"]["emoji"] = {}
 				awnser["poll_media"]["emoji"]["name"] = emoji.lstrip(":").rstrip(":")
+				print(awnser)
 			# If an emoji is an int then the user wants to add a custom emoji
 			elif emoji.is_valid_int():
+				awnser["poll_media"]["emoji"] = {}
 				awnser["poll_media"]["emoji"]["id"] = emoji
 
 		awnsers_array.append(awnser)
@@ -241,6 +246,15 @@ func delete(message_id: String) -> bool:
 	if response.code == 204:
 		return true
 	return false
+
+
+func Get(message_id: String) -> Response:
+	var url = webhook_url + "/messages/" + message_id
+	var method = HTTPClient.METHOD_GET
+	print("Patched %s" %message_id)
+	var response = await _request(method, url, HEADERS, JSON.stringify(get_parsed_data()))
+	response.parse()
+	return response
 
 
 # Ensure that the connection to the client is closed
