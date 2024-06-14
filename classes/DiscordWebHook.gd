@@ -1,14 +1,16 @@
-extends Node
+extends RefCounted
 class_name DiscordWebHook
 
-const ALLOWED_MENTION_TYPES := {
-	 "RoleMentions": "roles", "UserMentions": "users", "EveryoneMentions": "everyone"
+## A discord webhook is not a node and does not need to be added to the scene tree
+
+enum MESSAGE_FLAGS {
+	SUPPRESS_EMBEDS = 1 << 2, ## Do not include any embeds when serializing this message
+	SUPRESS_NOTIFICATIONS = 1 << 12, ## This message will not trigger push and desktop notifications
 	}
 
-var HEADERS: PackedStringArray = ["Accept: application/json", "Content-Type: application/json"]
+const HEADERS: PackedStringArray = ["Accept: application/json", "Content-Type: application/json"]
 const PORT := 443
 const API_HOST := "https://discord.com"
-
 
 const WebHookEmbed = preload("./DiscordWebHookEmbed.gd")
 
@@ -16,7 +18,9 @@ var client: HTTPClient
 var webhook_url: String = ""
 var data: Dictionary = {}
 
+## Returned by [method DiscordWebHook.post] and [method DiscordWebHook.edit]
 class Response:
+	var _parsed := false
 	var code: int = -1
 	var headers: Dictionary = {}
 	var body: PackedByteArray = []
@@ -25,16 +29,37 @@ class Response:
 	# Determine if this response was chunked
 	var chunked := false
 
+	var channel_id := ""
+	var message_id := ""
+	var message_content := ""
+	var message_embeds: Array = []
+	var message_tts := false
+	var message_flags := 0
+
+
 	func text() -> String:
 		return body.get_string_from_utf8()
 
 
+	func parse() -> void:
+		var data = JSON.parse_string(text())
+		if typeof(data) != TYPE_DICTIONARY:
+			print(data)
+			return
+
+		data = (data as Dictionary)
+		channel_id = data.get("channel_id", "")
+		message_id = data.get("id", "")
+		message_content = data.get("content", "")
+		message_embeds = data.get("embeds", [])
+		message_tts = data.get("tts", false)
+		message_flags = data.get("flags", 0)
+		_parsed = true
+
 func _init(url: String) -> void:
 	client = HTTPClient.new()
-	webhook_url = "/" + url.lstrip(API_HOST)
+	webhook_url = url
 
-	# This node adds itself to the scene tree
-	Engine.get_main_loop().root.add_child.call_deferred(self)
 	_connect_to_discord()
 
 
@@ -59,34 +84,42 @@ func len_limit_string(string: String, length: int) -> String:
 	return string.left(length)
 
 
-func excecute() -> Response:
-	var parsed: Dictionary = data.duplicate()
-	if parsed.has("embeds"):
-		parsed["embeds"] = []
-		for embed: WebHookEmbed in data.get("embeds", []):
-			parsed["embeds"].append(embed.to_json())
-	return await post(JSON.stringify(parsed))
-
-
 #region Message
 
-func set_content(content: String) -> void:
+## Supports hyperlink
+func message(content: String) -> DiscordWebHook:
 	data["content"] = content
+	return self
 
 
-func set_username(username: String) -> void:
+## Chain-able
+func username(username: String) -> DiscordWebHook:
 	data["username"] = username
+	return self
 
 
-func set_profile_picture(url: String) -> void:
+## Chain-able
+func profile_picture(url: String) -> DiscordWebHook:
 	data["avatar_url"] = url
+	return self
 
 
-func send_as_tts(tts: bool) -> void:
+## Chain-able
+func tts(tts: bool) -> DiscordWebHook:
 	data["tts"] = tts
+	return self
 
 
-## Creates an embed and returns it
+## use [enum MESSAGE_FLAGS]
+## combine flags by using '^'[br]eg.
+## [codeblock]MESSAGE_FLAGS.SUPRESS_EMBEDS ^ MESSAGE_FLAGS.SUPRESS_NOTIFICATIONS[/codeblock]
+func flags(flag: int) -> DiscordWebHook:
+	data["flags"] = flag
+	return self
+
+
+## Creates an embed and returns it[br]
+## Not chainable
 func add_embed() -> WebHookEmbed:
 	if not data.has("embeds"):
 		data["embeds"] = []
@@ -100,6 +133,17 @@ func add_embed() -> WebHookEmbed:
 	data["embeds"].append(embed)
 
 	return embed
+
+
+# Not chain-able
+func get_embed(at: int) -> WebHookEmbed:
+	if not data.has("embeds") and at <= 10:
+		return null
+
+	if data["embeds"].size()  <= at + 1:
+		return data["embeds"][at]
+
+	return null
 
 
 ## Creates a poll using [param question] (300 character limit) and a list of [param awnsers]
@@ -140,14 +184,74 @@ func add_poll(question: String, awnsers: PackedStringArray, duration: int, multi
 #endregion
 
 
+func get_parsed_data() -> Dictionary:
+	var parsed: Dictionary = data.duplicate()
+	if parsed.has("embeds"):
+		parsed["embeds"] = []
+		for embed in data.get("embeds", []):
+			if embed is WebHookEmbed:
+				parsed["embeds"].append(embed.to_json())
 
-func post(query: String) -> Response:
+	return parsed
+
+
+func replace_using_response(response: Response) -> DiscordWebHook:
+	if not response._parsed:
+		response.parse()
+	data = {
+		"content": response.message_content,
+		"embeds": [],
+		"tts": response.message_tts,
+		"flags": response.message_flags
+	}
+
+	for embed_dict: Dictionary in response.message_embeds:
+		var embed_object: WebHookEmbed = WebHookEmbed.new()
+		embed_object.embed = embed_dict
+		data.embeds.append(embed_object)
+
+	return self
+
+
+func post() -> Response:
+	var url = webhook_url + "?wait=true"
+	var method = HTTPClient.METHOD_POST
+	var response = await _request(method, url, HEADERS, JSON.stringify(get_parsed_data()))
+	response.parse()
+	print("Posted %s" %response.message_id)
+	return response
+
+
+func edit(message_id: String) -> Response:
+	var url = webhook_url + "/messages/" + message_id
+	var method = HTTPClient.METHOD_PATCH
+	print("Patched %s" %message_id)
+	var response = await _request(method, url, HEADERS, JSON.stringify(get_parsed_data()))
+	response.parse()
+	return response
+
+
+## Returns true if deleting the message was sucessful
+func delete(message_id: String) -> bool:
+	var url = webhook_url + "/messages/" + message_id
+	var method = HTTPClient.METHOD_DELETE
+	print("Deleted %s" %message_id)
+	var response = await _request(method, url, HEADERS, JSON.stringify(get_parsed_data()))
+
+	if response.code == 204:
+		return true
+	return false
+
+
+# Ensure that the connection to the client is closed
+func close_connection() -> void:
+	if client: client.close()
+
+
+func _request(method: HTTPClient.Method, url: String, headers: PackedStringArray, query: String) -> Response:
+	var err = client.request(method, url, headers, query)
+
 	var response := Response.new()
-	# Request a page from the site
-	print("Requesting from ", API_HOST + webhook_url)
-	var request_headers = HEADERS
-	var err = client.request(HTTPClient.METHOD_POST, API_HOST + webhook_url, request_headers, query)
-
 	if err != OK:
 		response.error = "There was an error trying to send your request >> %s" %error_string(err)
 		return response
@@ -158,56 +262,43 @@ func post(query: String) -> Response:
 
 	if not client.get_status() in [HTTPClient.STATUS_BODY, HTTPClient.STATUS_CONNECTED]:
 		printerr("Failed to post a message to discord")
+		response.error = "There was an error trying to senf you request, local error"
+		return response
 
-	if client.has_response():
-		response.headers = client.get_response_headers_as_dictionary()
-		response.code = client.get_response_code()
-		response.chunked = client.is_response_chunked()
+	if not client.has_response():
+		response.error = "The the client did not respond with a request, try again"
+		return response
 
-		# Get the response body
-		# Array that will hold the data.
-		var chunks = PackedByteArray()
-		while client.get_status() == HTTPClient.STATUS_BODY:
-			# While there is body left to be read
-			client.poll()
-			# Get a chunk.
-			var chunk = client.read_response_body_chunk()
-			if chunk.size() == 0:
-				if not OS.has_feature("web"):
-					# Got nothing, wait for buffers to fill a bit.
-					OS.delay_usec(1000)
-				else:
-					await Engine.get_main_loop().process_frame
+	response.headers = client.get_response_headers_as_dictionary()
+	response.code = client.get_response_code()
+	response.chunked = client.is_response_chunked()
+
+	# Get the response body
+	# Array that will hold the data.
+	var chunks = PackedByteArray()
+	while client.get_status() == HTTPClient.STATUS_BODY:
+		# While there is body left to be read
+		client.poll()
+		# Get a chunk.
+		var chunk = client.read_response_body_chunk()
+		if chunk.size() == 0:
+			if not OS.has_feature("web"):
+				# Got nothing, wait for buffers to fill a bit.
+				OS.delay_usec(1000)
 			else:
-				# Append to read buffer.
-				chunks.append_array(chunk)
+				await Engine.get_main_loop().process_frame
+		else:
+			# Append to read buffer.
+			chunks.append_array(chunk)
 
-		response.body = chunks
-
+	response.body = chunks
 	return response
 
 
-## A helper function, used to color embed objects
+## A helper function, used to color embed objects. It converts the rgb components to hex
 static func rgb_to_hex(color: Color) -> int:
-	return ("0x"\
-	+ _rgb_component_to_hex(roundi(color.r * 255))\
-	+ _rgb_component_to_hex(roundi(color.g * 255))\
-	+ _rgb_component_to_hex(roundi(color.b * 255))\
-	).hex_to_int()
-
-
-static func _rgb_component_to_hex(number: int) -> String:
-	if number == 0:
-		return "00"
-
-	var hex_code: String = ""
-	while(number != 0):
-		var temp_number: int = number % 16
-		if(temp_number < 10):
-			hex_code += char(temp_number + 48)
-		else:
-			hex_code += char(temp_number + 55)
-		@warning_ignore("integer_division")
-		number = int(number / 16)
-
-	return hex_code.reverse()
+	return PackedByteArray([
+		roundi(color.r * 255.0),
+		roundi(color.g * 255.0),
+		roundi(color.b * 255.0)
+	]).hex_encode().hex_to_int()

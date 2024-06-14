@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://5f77p13wqufo"]
-
-[ext_resource type="Script" path="res://webhook_example/webhook_example.gd" id="1_4ufpc"]
-
-[node name="WebhookExample" type="Node"]
-script = ExtResource("1_4ufpc")
