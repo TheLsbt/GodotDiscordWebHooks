@@ -3,6 +3,8 @@
 > [!WARNING]
 > Be sure to check the [unsupported features](https://github.com/TheLsbt/GodotDiscordWebHooks/wiki/Features#unsupported-features) to ensure that you can use this plugin efficiently.
 
+[Api in action](https://github.com/TheLsbt/GodotDiscordWebHooks#api-in-action)
+
 ## Getting started
 1. To get started with GodotDiscordWebHooks install this plugin either from downloading / cloning the GitHub repository.
 3. Get a [webhook url](https://github.com/TheLsbt/GodotDiscordWebHooks#get-a-webhook-url) if you haven't already.
@@ -45,3 +47,7 @@ func _read() -> void:
  2. ![CreateWebhook](https://github.com/TheLsbt/DiscordWebHooks/assets/141819348/59954545-994d-4019-a78a-e9d7caad3f85)
  3. ![GettingWebhookUrl](https://github.com/TheLsbt/DiscordWebHooks/assets/141819348/b05af915-c95d-438f-92ec-6390dfbe442b)
 
+
+## Api in action
+![Screenshot 2024-06-14 040147](https://github.com/TheLsbt/GodotDiscordWebHooks/assets/141819348/1b2b3ba5-b314-4385-b37c-ba0babcb2f3e)
+![Screenshot 2024-06-14 040403](https://github.com/TheLsbt/GodotDiscordWebHooks/assets/141819348/a737e4ce-572e-4474-b3c5-cd6447bba77b)
