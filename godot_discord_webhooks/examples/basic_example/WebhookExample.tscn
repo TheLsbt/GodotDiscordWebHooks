@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://5f77p13wqufo"]
 
-[ext_resource type="Script" path="res://webhook_example/basic_example/WebhookExample.gd" id="1_hjq38"]
+[ext_resource type="Script" path="res://godot_discord_webhooks/examples/basic_example/WebhookExample.gd" id="1_hjq38"]
 
 [node name="WebhookExample" type="Node"]
 script = ExtResource("1_hjq38")
