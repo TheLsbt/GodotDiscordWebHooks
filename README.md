@@ -5,6 +5,9 @@
 
 Checkout the [api in action](https://github.com/TheLsbt/GodotDiscordWebHooks#api-in-action)
 
+## Check the docs
+Check the [docs](https://github.com/TheLsbt/GodotDiscordWebHooks/wiki/Docs)
+
 ## Getting started
 1. To get started with GodotDiscordWebHooks install this plugin either from downloading / cloning the GitHub repository.
 3. Get a [webhook url](https://github.com/TheLsbt/GodotDiscordWebHooks#get-a-webhook-url) if you haven't already.
