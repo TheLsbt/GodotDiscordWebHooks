@@ -55,7 +55,7 @@ class Response:
 		message_embeds = data.get("embeds", [])
 		message_tts = data.get("tts", false)
 		message_flags = data.get("flags", 0)
-		#message_poll = data.get("poll", )
+		message_poll = data.get("poll", {})
 		_parsed = true
 
 func _init(url: String) -> void:
