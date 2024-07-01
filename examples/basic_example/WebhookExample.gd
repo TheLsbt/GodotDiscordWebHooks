@@ -7,6 +7,6 @@ var webhook: DiscordWebHook = null
 
 func _ready() -> void:
 	webhook = DiscordWebHook.new(WEBHOOK_URL)
-	webhook.message("Hello from godot!")
-	webhook.post()
-
+	webhook.message("Hello World!")
+	var response: DiscordWebHook.Response = await webhook.post()
+	print(response.text())
