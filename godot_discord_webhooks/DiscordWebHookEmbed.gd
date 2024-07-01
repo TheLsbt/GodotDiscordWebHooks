@@ -71,12 +71,11 @@ func thumbnail(url: String) -> DiscordWebHook.WebHookEmbed:
 
 
 ## Chainableᵗᵐ
-func author(name: String, url := "", icon_url := "", proxy_icon_url := "") -> DiscordWebHook.WebHookEmbed:
+func author(name: String, url := "", icon_url := "") -> DiscordWebHook.WebHookEmbed:
 	embed["author"] = {
 		"name": name,
 		"url": url,
 		"icon_url": icon_url,
-		"proxy_icon_url": proxy_icon_url,
 	}
 	return self
 
