@@ -1,5 +1,6 @@
 extends RefCounted
 
+
 # The headers for our request
 var _headers = []
 
